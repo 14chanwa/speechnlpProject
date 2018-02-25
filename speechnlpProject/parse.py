@@ -5,7 +5,9 @@ Created on Fri Feb 23 11:58:06 2018
 @author: Quentin
 """
 
+
 from speechnlpProject.grammar import *
+import numpy as np
 
 
 """
@@ -132,7 +134,7 @@ def parse_transition_level(test_s):
     nts: list(GTransition).
         List of transitions in test_s (with multiplicities).
 """
-def _recursive_parse_transition_level(test_s):
+def _recursive_parse_transition_level(test_s, to_lower_case=False):
     
     # Suppose the first token is the non-terminal symbol
     nts = test_s.split(' ', 1)[0]
@@ -153,18 +155,55 @@ def _recursive_parse_transition_level(test_s):
         
         res = [GTransition(nts, syms_next_level)]
         for _test_s in s_next_level:
-            res += _recursive_parse_transition_level(_test_s)
+            res += _recursive_parse_transition_level(_test_s, to_lower_case)
         
         return res
         
     else:
         # Get terminal symbol
         sym = test_s.split(' ', 2)[1]
+        
+        if to_lower_case:
+            sym = sym.lower()
+
         syms_next_level.append(GSymbol(sym, GSymbol.TERMINAL))
         
         res = [GTransition(nts, syms_next_level)]
         
         return res
+
+
+def remove_nt_to_nt(l_gtrans):
+    
+    l_gtrans2 = list()
+    map_nt_to_nt = {}
+    
+    # For each GTransition
+    for gtrans in l_gtrans:
+        new_res_symb = gtrans.res_symb()
+        while len(new_res_symb) == 1 and \
+            new_res_symb[0].stype() == GSymbol.NON_TERMINAL:
+            # Dig until find a terminal or more than 2 non-terminals
+            for gtrans2 in l_gtrans:
+                if gtrans2.symb() == new_res_symb[0]:
+                    if gtrans2.symb() not in map_nt_to_nt.keys():
+                        map_nt_to_nt[gtrans2.symb()] = set()
+                    map_nt_to_nt[gtrans2.symb()].add(gtrans.symb())
+                    new_res_symb = gtrans2.res_symb()
+                    break
+        l_gtrans2.append(GTransition(gtrans.symb(), new_res_symb))
+    
+    # Append all missing GTransitions
+    # Initial length of the list
+    n_init = len(l_gtrans2)
+    for i in range(n_init):
+        symbol_to_map = l_gtrans2[i].symb()
+        if symbol_to_map in map_nt_to_nt.keys():
+            for gsymb in map_nt_to_nt[symbol_to_map]:
+                l_gtrans2.append(GTransition(gsymb, l_gtrans2[i].res_symb()))
+    #~ print(map_nt_to_nt)
+    
+    return l_gtrans2
 
 
 """
@@ -184,10 +223,105 @@ def _recursive_parse_transition_level(test_s):
     nts: Counter({GTransition : n}).
         Counter of different transitions.
 """
-def parse_transitions(test_s):
+def parse_transitions(test_s, to_lower_case=False):
     
     # Remove unused parenthesis
     while test_s.lstrip()[0] == "(":
         test_s = parse_parenthesis_blocks(test_s)[0]
     
-    return Counter(_recursive_parse_transition_level(test_s))
+    parsed_transitions = _recursive_parse_transition_level(test_s, to_lower_case)
+    parsed_transitions = remove_nt_to_nt(parsed_transitions)
+    
+    return Counter(parsed_transitions)
+
+
+class CYK_Parser:
+    
+    def __init__(self, pcfg, root_symbol):
+        self._pcfg = pcfg
+        self._root_symbol = root_symbol
+    
+    
+    def parse(self, test_s):
+        
+        # Parse spaces in string
+        input_string = test_s.split(' ')
+        
+        n = len(input_string)
+        
+        print(n)
+        
+        # Check if words in lexicon
+        for w in input_string:
+            if w not in self._pcfg.lexicon().keys():
+                raise Exception("Unrecognized word:" + w)
+        
+        print("OK")
+        
+        # Perform CYK
+        # Build a table.
+        cyk_table = []
+        
+        # First level: non-terminals corresponding to words
+        # The first row of cyk_table will be:
+        # [ {non-terminal: {GTransition: value}}, ...
+        #       {non-terminal: {GTransition: value}}...] (length n)
+        # where value is the log-probability of this non-terminal 
+        # leading to this terminal.
+        
+        cyk_table.append([])
+        current_row = cyk_table[0]
+        
+        for i in range(n):
+            current_row.append({})
+            current_cell = current_row[i]
+            
+            # Get terminal symbol
+            ts = input_string[i]
+            
+            # Add all {non-terminal: probability}
+            # Get non-terminals that lead to this terminal
+            for nts in self._pcfg.lexicon()[ts]:
+                current_max_proba = 0
+                for trans, val in self._pcfg.root_to_trans(nts).items():
+                    if val > current_max_proba and trans.res_symb()[0].ssymb() == ts:
+                        current_cell[nts] = {trans: np.log(val)}
+        
+        
+        for lev in range(1, n):
+            # Level lev: on this row, all combinations:
+            # [{GSymbol: {GTransition: (value, i)}}, \
+            #        {GSymbol: {GTransition: (value, i)}}...]
+            # such that on the position j the GSymbol can be constructed by 
+            # combining a subword k->i and i->lev with the given transition and 
+            # max probability value.
+            cyk_table.append([])
+            current_row = cyk_table[lev]
+            for k in range(n-lev):
+                current_row.append({})
+                current_cell = current_row[k]
+                # On k column, get the possible combinations to get a
+                # suitable substring
+                # Iterate over combinations
+                for i in range(lev):
+                    # Get all symbols on cell (i, k) and cell (lev-i-1, k+1+i)
+                    candidate_symbols_1 = cyk_table[i][k].keys()
+                    candidate_symbols_2 = cyk_table[lev-i-1][k+1+i].keys()
+                    print("cell1:", (i, k))
+                    print("cell2:", (lev-i-1, k+1+i))
+                    for c1 in candidate_symbols_1:
+                        for c2 in candidate_symbols_2:
+                            print("for candidates", c1, c2, "found:", self._pcfg.res_to_trans((c1, c2)))
+                            # Look for transitions
+                            for trans, value in self._pcfg.res_to_trans((c1, c2)).items():
+                                if trans not in current_cell.keys():
+                                    current_cell[trans.symb()] = value
+                                else:
+                                    if current_cell[trans.symb()] < value:
+                                        current_cell[trans.symb()] = value
+                    print(current_cell)
+                            
+                print("\n")
+        
+        for lev in range(n-1, -1, -1):
+            print(cyk_table[lev])

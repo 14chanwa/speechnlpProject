@@ -32,7 +32,7 @@ class GSymbol:
     """
     def __init__(self, ssymb, stype):
         self._ssymb = ssymb
-        if stype not in [NON_TERMINAL, TERMINAL]:
+        if stype not in [self.NON_TERMINAL, self.TERMINAL]:
             raise Exception("Unrecognized symbol type")
         self._stype = stype
 
@@ -40,6 +40,11 @@ class GSymbol:
     def __eq__(self, gsymb):
         return self._ssymb == gsymb._ssymb and \
             self._stype == gsymb._stype
+    
+    
+    def __lt__(self, a):
+        return self._ssymb < a._ssymb
+    
 
     """
         GSymbol.__repr__
@@ -65,7 +70,7 @@ class GSymbol:
     def ssymb(self):
         return self._ssymb
     
-     """
+    """
         GSymbol.stype
         Get the type.
         
@@ -83,6 +88,13 @@ class GSymbol:
 """
 class GTransition:
     
+    # Index statically used to name new variables created by the
+    # Chomsky normalization process
+    _chomsky_variable_index = 1
+    
+    # Map very long names like NP_PONCT_NP_PONCT_VN_NP to short names 
+    # like X53. Useful to avoid duplicate variables.
+    _transition_name_mapper = {}
     
     """
         GSymbol.__init__
@@ -102,7 +114,7 @@ class GTransition:
         
         
         self._gsymb = gsymb
-        self._tgsymb = tgsymb
+        self._tgsymb = tuple(tgsymb)
         
     
     def __eq__(self, gtrans):
@@ -137,19 +149,43 @@ class GTransition:
     
     
     """
-        GSymbol.symb
+        GTransition.symb
         Get the root symbol.
         
         Returns
         ----------
-        ssymb: GSymbol.
+        gsymb: GSymbol.
     """
     def symb(self):
         return self._gsymb
     
     
     """
-        GSymbol.is_chomsky_normal_form
+        GTransition.res_symb
+        Get the result list of symbols.
+        
+        Returns
+        ----------
+        res_symb: GSymbol.
+    """
+    def res_symb(self):
+        return self._tgsymb
+    
+    
+    """
+        GTransition.symb
+        Get the transition symbols.
+        
+        Returns
+        ----------
+        tgsymb: tuple(GSymbol).
+    """
+    def transition_symb(self):
+        return self._tgsymb
+    
+    
+    """
+        GTransition.is_chomsky_normal_form
         Checks if the transition is in a Chomsky normal form.
         
         Returns
@@ -158,33 +194,33 @@ class GTransition:
     """
     def is_chomsky_normal_form(self):
         
-        if len(self._tgsymb) < 2:
-            return True
         if len(self._tgsymb) > 2:
             return False
-        if self._tgsymb[0].stype() == GSymbol.TERMINAL:
+        if len(self._tgsymb) == 2 and self._tgsymb[0].stype() == GSymbol.TERMINAL:
+            return False
+        if self._tgsymb[0].stype() == GSymbol.NON_TERMINAL:
             return False
         return True
     
     
     """
-        GSymbol.to_chomsky_normal_form
+        GTransition.reduce_to_2_or_less
         Transforms the transition in a Chomsky normal form.
         Creates substitutes GSymbols in order to make intermediate
         transitions.
         
         Returns
         ----------
-        chomsky_normal_form: list(GTransition).
+        new_trans_list: list(GTransition).
             A list of transitions in a Chomsky normal form replacing the
             current transitions.
     """
-    def to_chomsky_normal_form(self):
+    def reduce_to_2_or_less(self, short_name=True):
         
-        chomsky_normal_form = [self]
+        new_trans_list = [self]
         
-        if self.is_chomsky_normal_form():
-            return chomsky_normal_form
+        if len(self.transition_symb()) <= 2:
+            return new_trans_list
         
         else:
             
@@ -195,6 +231,11 @@ class GTransition:
             for i in range(len(self._tgsymb)):
                 if self._tgsymb[i].stype() == GSymbol.TERMINAL:
                     # Make new symbol
+                    #~ new_symb = GSymbol(\
+                        #~ "X" + str(_chomsky_variable_index), \
+                        #~ GSymbol.NON_TERMINAL\
+                        #~ )
+                    #~ GTransition._chomsky_variable_index += 1
                     new_symb = GSymbol(\
                         "t[" + self._tgsymb[i].ssymb() + "]", \
                         GSymbol.NON_TERMINAL\
@@ -207,7 +248,7 @@ class GTransition:
                     # Replace old terminal by new non-terminal
                     self._tgsymb[i] = new_symb
                     # Append new transition
-                    chomsky_normal_form.append(new_trans)
+                    new_trans_list.append(new_trans)
             
             # Each transition should lead to at most 2 NT
             # Begin from the end
@@ -217,26 +258,47 @@ class GTransition:
                 # Get current and previous NTs and merge them into one
                 # combined NT
                 # Make new symbol
-                new_symb = GSymbol(\
-                        self._tgsymb[current_index - 1].ssymb() + "_" + 
-                        self._tgsymb[current_index].ssymb(), \
-                        GSymbol.NON_TERMINAL\
-                        )
+                
+                # This is a unique key for the current transition (for
+                # instance, "NP_PONCT_NP_PONCT_VN_NP"), but very long..
+                transition_key = \
+                    self._tgsymb[current_index - 1].ssymb() + "_" + \
+                    self._tgsymb[current_index].ssymb()
+                
+                if short_name:
+                    # Create a short key if no existent key
+                    if transition_key not in GTransition._transition_name_mapper.keys():
+                        GTransition._transition_name_mapper[transition_key] = \
+                            "X" + str(GTransition._chomsky_variable_index)
+                        GTransition._chomsky_variable_index += 1
+                    
+                    new_symb = GSymbol(\
+                            GTransition._transition_name_mapper[transition_key], \
+                            GSymbol.NON_TERMINAL\
+                            )
+                else:
+                    new_symb = GSymbol(\
+                            self._tgsymb[current_index - 1].ssymb() + "_" + 
+                            self._tgsymb[current_index].ssymb(), \
+                            GSymbol.NON_TERMINAL\
+                            )
                 # Make new transition
                 new_trans = GTransition(\
                         new_symb,\
                         [self._tgsymb[current_index-1], self._tgsymb[current_index]]\
                         )
                 # Replace NTs into base transition
-                self._tgsymb.pop(-1)
-                self._tgsymb[-1] = new_symb
+                new_tgsymb = list(self._tgsymb)
+                new_tgsymb.pop(-1)
+                new_tgsymb[-1] = new_symb
+                self._tgsymb = tuple(new_tgsymb)
                 # Add the newly created transition
-                chomsky_normal_form.append(new_trans)
+                new_trans_list.append(new_trans)
                 
                 current_index -= 1
             
             
-            return chomsky_normal_form
+            return new_trans_list
 
 
 """
@@ -256,39 +318,110 @@ class PCFG:
         in the parsed corpus.
     chomsky_normalize=False: bool.
         Optional. Performs or not a Chomsky normalization.
-
-    Returns
-    ----------
-    nts: Counter({GTransition : n}).
-        Counter of different transitions.
+    short_name=True:bool.
+        Optional. Useful if Chomsky normalization: use short names like
+        "X451" instead of "NP_PONCT_NP_PONCT_VN_NP" for instance.
 """
-    def __init__(self, counter_gtrans, chomsky_normalize=False):
+    def __init__(self, counter_gtrans, chomsky_normalize=False, \
+                            short_name=True):
         # If option selected
         if chomsky_normalize:
-            # For each gtrans, normalize gtrans
+            
+            
+            # For each gtrans, reduce to transitions of length 2 or less
             normalized_counter_gtrans = Counter()
             for key, value in counter_gtrans.items():
-                if key.is_chomsky_normal_form():
+                if len(key.transition_symb()) <= 2:
                     #~ print("est_chomsky:", key)
                     normalized_counter_gtrans[key] = value
                 else:
-                    normalized_form = key.to_chomsky_normal_form()
+                    normalized_form = key.reduce_to_2_or_less(short_name)
                     for elt in normalized_form:
                         if not elt in normalized_counter_gtrans.keys():
                             normalized_counter_gtrans[elt] = 0
                         normalized_counter_gtrans[elt] += value
                         #~ print(elt, normalized_counter_gtrans[elt])
+            
+            
+            #~ # For each gtrans, if length == 1 and non-terminal symbol,
+            #~ # replace the results by the next res level
+            #~ while True:
+                
+                #~ print("loop")
+                
+                #~ normalized = True
+                
+                #~ # Search for a transition to remove
+                #~ for trans in normalized_counter_gtrans.keys():
+                    
+                    #~ trans2 = trans
+                    
+                    #~ if len(trans2.res_symb()) == 1 and \
+                        #~ trans2.res_symb()[0].stype() == GSymbol.NON_TERMINAL:
+                        
+                        #~ normalized = False
+                        #~ trans2._tgsymb = 
+                        
+                        #~ print("stub")
+                        
+                        #~ normalized = False
+                            
+                        #~ # Remove this transition
+                        #~ symbol_to_replace = trans.symb()
+                        #~ target_symbol = trans.res_symb()[0]
+                        
+                        #~ normalized_counter_gtrans_2 = {}
+                        #~ for trans2, value in normalized_counter_gtrans.items():
+                            #~ if trans2 != trans:
+                                #~ for i in range(len(trans2.res_symb())):
+                                    #~ new_symb_list = list(trans2.res_symb())
+                                    #~ if new_symb_list[i] == symbol_to_replace:
+                                        #~ new_symb_list[i] = target_symbol
+                                        #~ print(trans2)
+                                        #~ print("la")
+                                    #~ trans2._tgsymb = tuple(new_symb_list)
+                        
+                        
+                        #~ print("removed transition:", symbol_to_replace, "->", target_symbol)
+                        
+                        #~ print("break")
+                        #~ break
+                    #~ if trans2 in normalized_counter_gtrans_2.keys():
+                        #~ normalized_counter_gtrans_2[trans2] += value
+                    #~ else:
+                        #~ normalized_counter_gtrans_2[trans2] = value
+                        
+                    
+                #~ normalized_counter_gtrans = normalized_counter_gtrans_2
+                    
+                #~ if normalized:
+                    #~ break
+                #~ else:
+                    #~ print("continue")
+                    #~ continue
+            
+            
         else:
             normalized_counter_gtrans = counter_gtrans
         
         cfgmap = {}
         
-        # Create map
+        # Create map & lexicon
+        self._lexicon = {}
+        
         for key, value in normalized_counter_gtrans.items():
             gsymb = key.symb()
             if not gsymb in cfgmap.keys():
                 cfgmap[gsymb] = {}
             cfgmap[gsymb][key] = value
+            
+            # Add terminal to the lexicon
+            if len(key.transition_symb()) == 1 and \
+                    key.transition_symb()[0].stype() == GSymbol.TERMINAL:
+                if key.transition_symb()[0].ssymb() not in \
+                        self._lexicon.keys():
+                    self._lexicon[key.transition_symb()[0].ssymb()] = set()
+                self._lexicon[key.transition_symb()[0].ssymb()].add(key.symb())
         
         # Compute probabilities by key
         for key, value in cfgmap.items():
@@ -297,6 +430,17 @@ class PCFG:
                 value[key2] = value2 / sum_counts
         self._cfgmap = cfgmap
     
+    
+        # Build an inverse map result to transition
+        # for instance A -> B, C will be mapped [B, C] -> {(A -> B, C): p}
+        self._cfg_inversemap = {}
+        for gtrans_proba in self._cfgmap.values():
+            for gtrans in gtrans_proba.keys():
+                res_symb = gtrans.res_symb()
+                if res_symb not in self._cfg_inversemap.keys():
+                    self._cfg_inversemap[res_symb] = {}
+                self._cfg_inversemap[res_symb][gtrans] = gtrans_proba[gtrans]
+                
     
     """
         PCFG.__repr__
@@ -309,28 +453,28 @@ class PCFG:
         
         res = ""
         
-        for gsymb in self.symbs():
+        for gsymb in self.nt_symbs():
             res += ">>>\t" + str(gsymb) + "\n"
-            for trans, value in self.trans(gsymb).items():
+            for trans, value in self.root_to_trans(gsymb).items():
                 res += "\t" + "{0:.2f}".format(value) + "\t" + str(trans) + "\n"
         
         return res[:len(res)-1]
     
     
     """
-        GSymbol.symbs
-        Get the grammar symbols.
+        PCFG.nt_symbs
+        Get the grammar non-terminal symbols.
         
         Returns
         ----------
         ssymbs: list(GSymbol).
     """
-    def symbs(self):
-        return self._cfgmap.keys()
+    def nt_symbs(self):
+        return sorted(list(self._cfgmap.keys()))
     
     
     """
-        GSymbol.trans
+        PCFG.root_to_trans
         Get the grammar transitions with root the provided symbol.
         
         Parameters
@@ -339,7 +483,39 @@ class PCFG:
         
         Returns
         ----------
-        strans: list(GSymbol).
+        d_gtrans: dict{GTransition: probability}.
     """
-    def trans(self, gsymb):
+    def root_to_trans(self, gsymb):
         return self._cfgmap[gsymb]
+    
+    
+    """
+        PCFG.res_to_trans
+        Get the grammar transitions with result the provided list of
+        symbols.
+        
+        Parameters
+        ----------
+        l_gsymb: tuple(GSymbol).
+        
+        Returns
+        ----------
+        d_gtrans: dict{GTransition: probability}.
+    """
+    def res_to_trans(self, l_gsymb):
+        if l_gsymb in self._cfg_inversemap.keys():
+            return self._cfg_inversemap[l_gsymb]
+        return {}
+    
+    
+    """
+        PCFG.lexicon
+        Get the lexicon (mapping word -> set of possible corresponding
+        non-terminals).
+        
+        Returns
+        ----------
+        lexicon: dict{String : set(GSymbol(Non-Terminal))}.
+    """
+    def lexicon(self):
+        return self._lexicon
