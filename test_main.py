@@ -132,9 +132,9 @@ for i in range(len(cfg_corpus_train)):
 b = PCFG(parsed_transitions, chomsky_normalize=True)
 #~ print(b)
 
-r_t_t = b.root_to_trans(GSymbol("SENT", 0))
-for elt in r_t_t:
-    print(elt)
+#~ r_t_t = b.root_to_trans(GSymbol("SENT", 0))
+#~ for elt in r_t_t:
+    #~ print(elt)
 
 #~ print(len(b.nt_symbs()), "non-terminals")
 #~ print(len(b.lexicon()), "words")
@@ -147,10 +147,10 @@ parser = CYK_Parser(b, GSymbol("SENT", GSymbol.NON_TERMINAL))
 #~ print(parser.parse(("Cardio- pulmonaire").lower()))
 #~ print(parser.parse(("Pourquoi ce thème ?").lower()))
 
-test_s = "La batterie sans harmonie" #"Nos condoléances ."
-test_s_parsed = "( (SENT (NP (DET Nos) (NC condoléances)) (PONCT .)))"
-parsed_transitions = parse_transitions(test_s_parsed, to_lower_case=True)
-print(parsed_transitions)
+test_s = "Une nouvelle école pour la commune" #"Nos condoléances ."
+#~ test_s_parsed = "( (SENT (NP (DET Nos) (NC condoléances)) (PONCT .)))"
+#~ parsed_transitions = parse_transitions(test_s_parsed, to_lower_case=True)
+#~ print(parsed_transitions)
 
 print(parser.parse((test_s).lower()))
 

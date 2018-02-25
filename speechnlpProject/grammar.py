@@ -428,6 +428,7 @@ class PCFG:
             sum_counts = sum(value.values())
             for key2, value2 in value.items():
                 value[key2] = value2 / sum_counts
+                #~ print(value[key2])
         self._cfgmap = cfgmap
     
     

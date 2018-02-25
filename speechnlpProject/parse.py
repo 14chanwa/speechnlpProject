@@ -237,9 +237,32 @@ def parse_transitions(test_s, to_lower_case=False):
 
 class CYK_Parser:
     
-    def __init__(self, pcfg, root_symbol):
+    
+    def __init__(self, pcfg, root_symbol, verbose=False):
         self._pcfg = pcfg
         self._root_symbol = root_symbol
+        self.verbose = verbose
+    
+    
+    def _recursive_string_construction(self, cyk_table, i, j, gsymb):
+        
+        # Get transition
+        gtrans = cyk_table[i][j][gsymb][0]
+        
+        # If transition maps to a terminal, return the terminal
+        if gtrans.res_symb()[0].stype() == GSymbol.TERMINAL:
+            return str(gsymb) + " " + gtrans.res_symb()[0].ssymb()
+        
+        # else, recursively get the transitions
+        return str(gsymb) + " (" + \
+            self._recursive_string_construction(cyk_table, \
+                cyk_table[i][j][gsymb][2], \
+                cyk_table[i][j][gsymb][3], \
+                cyk_table[i][j][gsymb][0].res_symb()[0]) + ") (" + \
+            self._recursive_string_construction(cyk_table, \
+                cyk_table[i][j][gsymb][4], \
+                cyk_table[i][j][gsymb][5], \
+                cyk_table[i][j][gsymb][0].res_symb()[1]) + ")"
     
     
     def parse(self, test_s):
@@ -249,14 +272,12 @@ class CYK_Parser:
         
         n = len(input_string)
         
-        print(n)
-        
         # Check if words in lexicon
         for w in input_string:
             if w not in self._pcfg.lexicon().keys():
-                raise Exception("Unrecognized word:" + w)
-        
-        print("OK")
+                #~ raise Exception("Unrecognized word:" + w)
+                print("Unrecognized word: " + w)
+                return None
         
         # Perform CYK
         # Build a table.
@@ -264,9 +285,9 @@ class CYK_Parser:
         
         # First level: non-terminals corresponding to words
         # The first row of cyk_table will be:
-        # [ {non-terminal: {GTransition: value}}, ...
-        #       {non-terminal: {GTransition: value}}...] (length n)
-        # where value is the log-probability of this non-terminal 
+        # [ {non-terminal: (GTransition, logvalue)}, ...
+        #       {non-terminal: (GTransition, logvalue)}...] (length n)
+        # where logvalue is the log-probability of this non-terminal 
         # leading to this terminal.
         
         cyk_table.append([])
@@ -282,19 +303,20 @@ class CYK_Parser:
             # Add all {non-terminal: probability}
             # Get non-terminals that lead to this terminal
             for nts in self._pcfg.lexicon()[ts]:
-                current_max_proba = 0
+                current_max_log_proba = -np.inf
                 for trans, val in self._pcfg.root_to_trans(nts).items():
-                    if val > current_max_proba and trans.res_symb()[0].ssymb() == ts:
-                        current_cell[nts] = {trans: np.log(val)}
+                    if np.log(val) > current_max_log_proba and trans.res_symb()[0].ssymb() == ts:
+                        current_cell[nts] = (trans, np.log(val))
+                        current_max_log_proba = np.log(val)
         
         
         for lev in range(1, n):
             # Level lev: on this row, all combinations:
-            # [{GSymbol: {GTransition: (value, i)}}, \
-            #        {GSymbol: {GTransition: (value, i)}}...]
+            # [{GSymbol: (GTransition, logvalue, i, j, i', j'))}, \
+            #        {GSymbol: (GTransition, logvalue, i, j, i', j'))}...]
             # such that on the position j the GSymbol can be constructed by 
-            # combining a subword k->i and i->lev with the given transition and 
-            # max probability value.
+            # combining a subword at position (i, j) and (i', j') given by
+            # the transition GTransition with max log probability logvalue.
             cyk_table.append([])
             current_row = cyk_table[lev]
             for k in range(n-lev):
@@ -307,21 +329,30 @@ class CYK_Parser:
                     # Get all symbols on cell (i, k) and cell (lev-i-1, k+1+i)
                     candidate_symbols_1 = cyk_table[i][k].keys()
                     candidate_symbols_2 = cyk_table[lev-i-1][k+1+i].keys()
-                    print("cell1:", (i, k))
-                    print("cell2:", (lev-i-1, k+1+i))
+                    if self.verbose:
+                        print("cell1:", (i, k))
+                        print("cell2:", (lev-i-1, k+1+i))
                     for c1 in candidate_symbols_1:
                         for c2 in candidate_symbols_2:
-                            print("for candidates", c1, c2, "found:", self._pcfg.res_to_trans((c1, c2)))
+                            if self.verbose:
+                                print("for candidates", c1, c2, "found:", self._pcfg.res_to_trans((c1, c2)))
+                            weight = cyk_table[i][k][c1][1] + cyk_table[lev-i-1][k+1+i][c2][1]
                             # Look for transitions
                             for trans, value in self._pcfg.res_to_trans((c1, c2)).items():
-                                if trans not in current_cell.keys():
-                                    current_cell[trans.symb()] = value
-                                else:
-                                    if current_cell[trans.symb()] < value:
-                                        current_cell[trans.symb()] = value
-                    print(current_cell)
-                            
-                print("\n")
+                                # Add combination or replace if probability is greater
+                                if trans.symb() not in current_cell.keys() or weight + np.log(value) > current_cell[trans.symb()][1]:
+                                    current_cell[trans.symb()] = (trans, weight + np.log(value), i, k, lev-i-1, k+1+i)
+                if self.verbose:            
+                    print("\n")
         
-        for lev in range(n-1, -1, -1):
-            print(cyk_table[lev])
+        if self.verbose:
+            print("Unweighted CYK table:")
+            for lev in range(n-1, -1, -1):
+                print([sorted(list(gsymb.keys())) for gsymb in cyk_table[lev]])
+        if self._root_symbol in cyk_table[n-1][0].keys():
+            if self.verbose:
+                print("Found " + str(self._root_symbol) + " in top level with logp=" + str(cyk_table[n-1][0][self._root_symbol][1]))
+            return "(" + self._recursive_string_construction(cyk_table, n-1, 0, self._root_symbol) + ")"
+        
+        return None
+        
