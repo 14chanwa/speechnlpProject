@@ -646,6 +646,7 @@ class PCFG:
         
         # Create map & lexicon
         self._lexicon = {}
+        self._final_non_terminals = []
         
         for key, value in normalized_counter_gtrans.items():
             gsymb = key.symb()
@@ -653,13 +654,14 @@ class PCFG:
                 cfgmap[gsymb] = {}
             cfgmap[gsymb][key] = value
             
-            # Add terminal to the lexicon
+            # Add terminal to the lexicon and non-terminal in the list
             if len(key.transition_symb()) == 1 and \
                     key.transition_symb()[0].stype() == GSymbol.TERMINAL:
                 if key.transition_symb()[0].ssymb() not in \
                         self._lexicon.keys():
                     self._lexicon[key.transition_symb()[0].ssymb()] = set()
                 self._lexicon[key.transition_symb()[0].ssymb()].add(key.symb())
+                self._final_non_terminals.append(key.symb())
         
         
         # Get a frequency map of words in overall lexicon
@@ -774,6 +776,18 @@ class PCFG:
     """
     def lexicon(self):
         return self._lexicon
+
+    
+    """
+        PCFG.final_non_terminals
+        Get the set of non-terminals which can lead to a terminal.
+        
+        Returns
+        ----------
+        nts: list(GSymbol(Non-Terminal)).
+    """
+    def final_non_terminals(self):
+        return self._final_non_terminals
 
 
     """

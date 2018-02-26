@@ -127,21 +127,25 @@ class CYK_Parser:
                 print("Unrecognized word: " + ts_init + ". Looking for replacement...")
                 
                 # Get a word in lexicon with edit distance < 3
-                k = 1
-                while k < 3:
-                    replacement_string_map = {}
-                    for lexw in self._pcfg.lexicon().keys():
-                        if edit_distance(ts_init, lexw) <= 2:
-                            replacement_string_map[lexw] = self._pcfg.get_frequency(lexw)
-                    if len(replacement_string_map) > 0:
+                max_edit_distance = 3
+                replacement_string_map = []
+                for z in range(max_edit_distance):
+                    replacement_string_map.append({})
+                for lexw in self._pcfg.lexicon().keys():
+                    current_edit_distance = edit_distance(ts_init, lexw)
+                    if current_edit_distance <= max_edit_distance:
+                        replacement_string_map[current_edit_distance-1][lexw] = self._pcfg.get_frequency(lexw)
+                k = 0
+                while k < max_edit_distance:
+                    if len(replacement_string_map[k]) > 0:
                         break
                     else:
                         k += 1
                 
                 # Get replacement word with max frequency
-                if len(replacement_string_map) > 0:
-                    ts = max(replacement_string_map, key=replacement_string_map.get)
-                    print("Replaced with word: " + ts)
+                if k < max_edit_distance and len(replacement_string_map[k]) > 0:
+                    ts = max(replacement_string_map[k], key=replacement_string_map[k].get)
+                    print("Replaced with word: " + ts + ", edit dist=", k+1)
                 else:
                     print("Skip word")
                     skip_word = True
