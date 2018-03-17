@@ -8,29 +8,30 @@ Created on Fri Feb 23 11:58:06 2018
 from collections import Counter
 
 
-"""
-    GSymbol
-    Implements grammatical symbol.
-"""
 class GSymbol:
+    """
+        GSymbol
+        Implements grammatical symbol.
+    """
     
     
     NON_TERMINAL = 0
     TERMINAL = 1
     
     
-    """
-        GSymbol.__init__
-        Builds a symbol.
-        
-        Parameters
-        ----------
-        ssymb: string. 
-            The unique identifier of the symbol.
-        stype: int (NON_TERMINAL or TERMINAL).
-            The type NON_TERMINAL (0) or TERMINAL (1) of the symbol.
-    """
+    
     def __init__(self, ssymb, stype):
+        """
+            GSymbol.__init__
+            Builds a symbol.
+            
+            Parameters
+            ----------
+            ssymb: string. 
+                The unique identifier of the symbol.
+            stype: int (NON_TERMINAL or TERMINAL).
+                The type NON_TERMINAL (0) or TERMINAL (1) of the symbol.
+        """
         self._ssymb = ssymb
         if stype not in [self.NON_TERMINAL, self.TERMINAL]:
             raise Exception("Unrecognized symbol type")
@@ -46,47 +47,50 @@ class GSymbol:
         return self._ssymb < a._ssymb
     
 
-    """
-        GSymbol.__repr__
-        Map GSymbol to string symbol.
-        
-        res: string.
-    """
     def __repr__(self):
+        """
+            GSymbol.__repr__
+            Map GSymbol to string symbol.
+            
+            res: string.
+        """
         return self._ssymb
 
 
     def __hash__(self):
         return hash((self._ssymb, self._stype))
 
-    """
-        GSymbol.ssymb
-        Get the symbol.
-        
-        Returns
-        ----------
-        ssymb: string.
-    """
+    
     def ssymb(self):
+        """
+            GSymbol.ssymb
+            Get the symbol.
+            
+            Returns
+            ----------
+            ssymb: string.
+        """
         return self._ssymb
     
-    """
-        GSymbol.stype
-        Get the type.
-        
-        Returns
-        ----------
-        stype: int (NON_TERMINAL or TERMINAL).
-    """
+    
     def stype(self):
+        """
+            GSymbol.stype
+            Get the type.
+            
+            Returns
+            ----------
+            stype: int (NON_TERMINAL or TERMINAL).
+        """
         return self._stype
 
 
-"""
-    GTransition
-    Implements grammatical transition.
-"""
+
 class GTransition:
+    """
+        GTransition
+        Implements grammatical transition.
+    """
     
     # Index statically used to name new variables created by the
     # Chomsky normalization process
@@ -96,18 +100,19 @@ class GTransition:
     # like X53. Useful to avoid duplicate variables.
     _transition_name_mapper = {}
     
-    """
-        GSymbol.__init__
-        Builds a transition.
-        
-        Parameters
-        ----------
-        gsymb: GSymbol. 
-            The root symbol of the transition.
-        tgsymb: list(GSymbol).
-            An ordered list of the symbols of the result of the transition.
-    """
+    
     def __init__(self, gsymb, tgsymb):
+        """
+            GSymbol.__init__
+            Builds a transition.
+            
+            Parameters
+            ----------
+            gsymb: GSymbol. 
+                The root symbol of the transition.
+            tgsymb: list(GSymbol).
+                An ordered list of the symbols of the result of the transition.
+        """
         
         if gsymb._stype == GSymbol.TERMINAL:
             raise Exception("Cannot make GTransition from terminal symbol")
@@ -129,14 +134,13 @@ class GTransition:
         return True
     
     
-    """
-        GTransition.__repr__
-        Maps GTransition to a description string. 
-        
-        res: string.
-    """
     def __repr__(self):
-        
+        """
+            GTransition.__repr__
+            Maps GTransition to a description string. 
+            
+            res: string.
+        """
         res = str(self._gsymb) + " -> "
         for gsymb in self._tgsymb:
             res += str(gsymb) + " "
@@ -148,52 +152,51 @@ class GTransition:
         return hash(((self._gsymb), tuple(self._tgsymb)))
     
     
-    """
-        GTransition.symb
-        Get the root symbol.
-        
-        Returns
-        ----------
-        gsymb: GSymbol.
-    """
     def symb(self):
+        """
+            GTransition.symb
+            Get the root symbol.
+            
+            Returns
+            ----------
+            gsymb: GSymbol.
+        """
         return self._gsymb
     
     
-    """
-        GTransition.res_symb
-        Get the result list of symbols.
-        
-        Returns
-        ----------
-        res_symb: GSymbol.
-    """
     def res_symb(self):
+        """
+            GTransition.res_symb
+            Get the result list of symbols.
+            
+            Returns
+            ----------
+            res_symb: GSymbol.
+        """
         return self._tgsymb
     
     
-    """
-        GTransition.symb
-        Get the transition symbols.
-        
-        Returns
-        ----------
-        tgsymb: tuple(GSymbol).
-    """
     def transition_symb(self):
+        """
+            GTransition.symb
+            Get the transition symbols.
+            
+            Returns
+            ----------
+            tgsymb: tuple(GSymbol).
+        """
         return self._tgsymb
     
     
-    """
-        GTransition.is_chomsky_normal_form
-        Checks if the transition is in a Chomsky normal form.
-        
-        Returns
-        ----------
-        res: bool.
-    """
     def is_chomsky_normal_form(self):
-        
+        """
+            GTransition.is_chomsky_normal_form
+            Checks if the transition is in a Chomsky normal form.
+            
+            Returns
+            ----------
+            res: bool.
+        """
         if len(self._tgsymb) > 2:
             return False
         if len(self._tgsymb) == 2 and self._tgsymb[0].stype() == GSymbol.TERMINAL:
@@ -203,20 +206,19 @@ class GTransition:
         return True
     
     
-    """
-        GTransition.reduce_to_2_or_less
-        Transforms the transition in a Chomsky normal form.
-        Creates substitutes GSymbols in order to make intermediate
-        transitions.
-        
-        Returns
-        ----------
-        new_trans_list: list(GTransition).
-            A list of transitions in a Chomsky normal form replacing the
-            current transitions.
-    """
     def reduce_to_2_or_less(self, short_name=True):
-        
+        """
+            GTransition.reduce_to_2_or_less
+            Transforms the transition in a Chomsky normal form.
+            Creates substitutes GSymbols in order to make intermediate
+            transitions.
+            
+            Returns
+            ----------
+            new_trans_list: list(GTransition).
+                A list of transitions in a Chomsky normal form replacing the
+                current transitions.
+        """
         new_trans_list = [self]
         
         if len(self.transition_symb()) <= 2:
@@ -224,8 +226,8 @@ class GTransition:
         
         else:
             
-            # Assume transitions NT -> NT do not exist...
-            # TODO what if they do
+            # Assume transitions NT -> NT do not exist... at least in the
+            # Sequoia Treebank
             
             # Replace T by NT
             for i in range(len(self._tgsymb)):
@@ -301,29 +303,29 @@ class GTransition:
             return new_trans_list
 
 
-"""
-    parse_parenthesis_blocks
-    Parse the first level of parenthesis blocks in the provided string.
-    E.g. on
-        "((1, a) (2, b))"
-    will return:
-        ["(1, a) (2, b)"]
-    but on
-        "(1, a) (2, b)"
-    will return:
-        ["(1, a)", "(2, b)"]
-    
-    Parameters
-    ----------
-    test_s: string. 
-        The string to be parsed.
-    
-    Returns
-    ----------
-    parsed: list(string). 
-        A list of parsed parenthesis blocks.
-"""
 def parse_parenthesis_blocks(test_s):
+    """
+        parse_parenthesis_blocks
+        Parse the first level of parenthesis blocks in the provided string.
+        E.g. on
+            "((1, a) (2, b))"
+        will return:
+            ["(1, a) (2, b)"]
+        but on
+            "(1, a) (2, b)"
+        will return:
+            ["(1, a)", "(2, b)"]
+        
+        Parameters
+        ----------
+        test_s: string. 
+            The string to be parsed.
+        
+        Returns
+        ----------
+        parsed: list(string). 
+            A list of parsed parenthesis blocks.
+    """
     parsed = []
     n_opened = 0
     i_opened = 0
@@ -343,35 +345,35 @@ def parse_parenthesis_blocks(test_s):
     return parsed
 
 
-"""
-    parse_transition_level
-    Parse the next level of transitions.
-    E.g. on
-        "((1, a) (2, b))"
-    will return:
-        ["(1, a) (2, b)"]
-    but on
-        "(1, a) (2, b)"
-    will return:
-        ["(1, a)", "(2, b)"]
-    Suppose no terminal is left alone without any non-terminal wrapping,
-    i.e. a terminal will always look like: (TER terminal).
-    
-    Parameters
-    ----------
-    test_s: string. 
-        The formatted string to be parsed. E.g.:
-            "NP-SUJ (DET Cette) (NC exposition)"
-    
-    Returns
-    ----------
-    nts: GTransition.
-        The current transition.
-    s_next_level: list(string).
-        A list of strings corresponding to the next levels, for further
-        investigation.
-"""
 def parse_transition_level(test_s):
+    """
+        parse_transition_level
+        Parse the next level of transitions.
+        E.g. on
+            "((1, a) (2, b))"
+        will return:
+            ["(1, a) (2, b)"]
+        but on
+            "(1, a) (2, b)"
+        will return:
+            ["(1, a)", "(2, b)"]
+        Suppose no terminal is left alone without any non-terminal wrapping,
+        i.e. a terminal will always look like: (TER terminal).
+        
+        Parameters
+        ----------
+        test_s: string. 
+            The formatted string to be parsed. E.g.:
+                "NP-SUJ (DET Cette) (NC exposition)"
+        
+        Returns
+        ----------
+        nts: GTransition.
+            The current transition.
+        s_next_level: list(string).
+            A list of strings corresponding to the next levels, for further
+            investigation.
+    """
     
     # Suppose the first token is the non-terminal symbol
     nts = test_s.split(' ', 1)[0]
@@ -399,35 +401,35 @@ def parse_transition_level(test_s):
     return ntr, s_next_level
 
 
-"""
-    _recursive_parse_transition_level
-    Parse the next level of transitions recursively.
-    E.g. on
-        "((1, a) (2, b))"
-    will return:
-        ["(1, a) (2, b)"]
-    but on
-        "(1, a) (2, b)"
-    will return:
-        ["(1, a)", "(2, b)"]
-    Suppose no terminal is left alone without any non-terminal wrapping,
-    i.e. a terminal will always look like: (TER terminal).
-    RECURSIVE VERSION
-    
-    Parameters
-    ----------
-    test_s: string. 
-        The formatted string to be parsed. E.g.:
-            "NP-SUJ (DET Cette) (NC exposition)"
-    to_lower_case=False: bool.
-        Optional. Puts or not the input string to lower before process.
-    
-    Returns
-    ----------
-    nts: list(GTransition).
-        List of transitions in test_s (with multiplicities).
-"""
 def _recursive_parse_transition_level(test_s, to_lower_case=False):
+    """
+        _recursive_parse_transition_level
+        Parse the next level of transitions recursively.
+        E.g. on
+            "((1, a) (2, b))"
+        will return:
+            ["(1, a) (2, b)"]
+        but on
+            "(1, a) (2, b)"
+        will return:
+            ["(1, a)", "(2, b)"]
+        Suppose no terminal is left alone without any non-terminal wrapping,
+        i.e. a terminal will always look like: (TER terminal).
+        RECURSIVE VERSION
+        
+        Parameters
+        ----------
+        test_s: string. 
+            The formatted string to be parsed. E.g.:
+                "NP-SUJ (DET Cette) (NC exposition)"
+        to_lower_case=False: bool.
+            Optional. Puts or not the input string to lower before process.
+        
+        Returns
+        ----------
+        nts: list(GTransition).
+            List of transitions in test_s (with multiplicities).
+    """
     
     # Suppose the first token is the non-terminal symbol
     nts = test_s.split(' ', 1)[0]
@@ -466,25 +468,25 @@ def _recursive_parse_transition_level(test_s, to_lower_case=False):
         return res
 
 
-"""
-    recursive_parsed_to_token
-    Maps a parsed string to only the terminal tokens (for test purposes)
-    
-    Parameters
-    ----------
-    test_s: string. 
-        The formatted string to be parsed. E.g.:
-            "NP-SUJ (DET Cette) (NC exposition)"
-    to_lower_case=False: bool.
-        Optional. Puts or not the input string to lower before process.
-    
-    Returns
-    ----------
-    res: string.
-        The tokenized only string, e.g.:
-            "cette exposition"
-"""
 def recursive_parsed_to_token(test_s, to_lower_case=False):
+    """
+        recursive_parsed_to_token
+        Maps a parsed string to only the terminal tokens (for test purposes)
+        
+        Parameters
+        ----------
+        test_s: string. 
+            The formatted string to be parsed. E.g.:
+                "NP-SUJ (DET Cette) (NC exposition)"
+        to_lower_case=False: bool.
+            Optional. Puts or not the input string to lower before process.
+        
+        Returns
+        ----------
+        res: string.
+            The tokenized only string, e.g.:
+                "cette exposition"
+    """
     
     # Suppose the first token is the non-terminal symbol
     nts = test_s.split(' ', 1)[0]
@@ -512,22 +514,22 @@ def recursive_parsed_to_token(test_s, to_lower_case=False):
         return sym
 
 
-"""
-    remove_nt_to_nt
-    Maps transitions A->B->C->...Z to A->Z, B->Z, C->Z (with Z terminal
-    or non-terminal with cardinal > 1)
-    
-    Parameters
-    ----------
-    l_gtrans: list(GTransition). 
-        Initial list of transitions (with multiplicities).
-    
-    Returns
-    ----------
-    l_gtrans2: list(GTransition).
-        Result list of transitions (with multiplicities).
-"""
 def remove_nt_to_nt(l_gtrans):
+    """
+        remove_nt_to_nt
+        Maps transitions A->B->C->...Z to A->Z, B->Z, C->Z (with Z terminal
+        or non-terminal with cardinal > 1)
+        
+        Parameters
+        ----------
+        l_gtrans: list(GTransition). 
+            Initial list of transitions (with multiplicities).
+        
+        Returns
+        ----------
+        l_gtrans2: list(GTransition).
+            Result list of transitions (with multiplicities).
+    """
     
     l_gtrans2 = list()
     map_nt_to_nt = {}
@@ -560,24 +562,24 @@ def remove_nt_to_nt(l_gtrans):
     return l_gtrans2
 
 
-"""
-    parse_transitions
-    Parse and count transitions in the provided string.
-
-    Parameters
-    ----------
-    test_s: string. 
-        The string to be parsed. E.g.:
-            "(NP-SUJ (DET Cette) (NC exposition))"
-        or:
-            "NP-SUJ (DET Cette) (NC exposition)"
-
-    Returns
-    ----------
-    nts: Counter({GTransition : n}).
-        Counter of different transitions.
-"""
 def parse_transitions(test_s, to_lower_case=False):
+    """
+        parse_transitions
+        Parse and count transitions in the provided string.
+
+        Parameters
+        ----------
+        test_s: string. 
+            The string to be parsed. E.g.:
+                "(NP-SUJ (DET Cette) (NC exposition))"
+            or:
+                "NP-SUJ (DET Cette) (NC exposition)"
+
+        Returns
+        ----------
+        nts: Counter({GTransition : n}).
+            Counter of different transitions.
+    """
     
     # Remove unused parenthesis
     while test_s.lstrip()[0] == "(":
@@ -590,28 +592,29 @@ def parse_transitions(test_s, to_lower_case=False):
 
 
 
-"""
-    PCFG
-    Implements probabilistic context-free grammars.
-"""
 class PCFG:
-    
     """
-    PCFG.__init__
-    Build a PCFG model (a map {NT GSymbol, {GTransition, proba}}
-
-    Parameters
-    ----------
-    cfg_corpus_train: list(string). 
-        A list of training corpus strings.
-    chomsky_normalize=False: bool.
-        Optional. Performs or not a Chomsky normalization.
-    short_name=True:bool.
-        Optional. Useful if Chomsky normalization: use short names like
-        "X451" instead of "NP_PONCT_NP_PONCT_VN_NP" for instance.
-"""
+        PCFG
+        Implements probabilistic context-free grammars.
+    """
+    
+    
     def __init__(self, cfg_corpus_train, chomsky_normalize=False, \
                             short_name=True, to_lower_case=True):
+        """
+            PCFG.__init__
+            Build a PCFG model (a map {NT GSymbol, {GTransition, proba}}
+
+            Parameters
+            ----------
+            cfg_corpus_train: list(string). 
+                A list of training corpus strings.
+            chomsky_normalize=False: bool.
+                Optional. Performs or not a Chomsky normalization.
+            short_name=True:bool.
+                Optional. Useful if Chomsky normalization: use short names like
+                "X451" instead of "NP_PONCT_NP_PONCT_VN_NP" for instance.
+        """
         
         # Parse transitions in provided corpus
         # counter_gtrans is Counter(GTransition, int). 
@@ -699,14 +702,14 @@ class PCFG:
                 self._cfg_inversemap[res_symb][gtrans] = gtrans_proba[gtrans]
                 
     
-    """
-        PCFG.__repr__
-        Maps PCFG to a description string. Lists symbol + related
-        transitions.        
-        
-        res: string.
-    """
     def __repr__(self):
+        """
+            PCFG.__repr__
+            Maps PCFG to a description string. Lists symbol + related
+            transitions.        
+            
+            res: string.
+        """
         
         res = ""
         
@@ -718,89 +721,89 @@ class PCFG:
         return res[:len(res)-1]
     
     
-    """
-        PCFG.nt_symbs
-        Get the grammar non-terminal symbols.
-        
-        Returns
-        ----------
-        ssymbs: list(GSymbol).
-    """
     def nt_symbs(self):
+        """
+            PCFG.nt_symbs
+            Get the grammar non-terminal symbols.
+            
+            Returns
+            ----------
+            ssymbs: list(GSymbol).
+        """
         return sorted(list(self._cfgmap.keys()))
     
     
-    """
-        PCFG.root_to_trans
-        Get the grammar transitions with root the provided symbol.
-        
-        Parameters
-        ----------
-        gsymb: GSymbol.
-        
-        Returns
-        ----------
-        d_gtrans: dict{GTransition: probability}.
-    """
     def root_to_trans(self, gsymb):
+        """
+            PCFG.root_to_trans
+            Get the grammar transitions with root the provided symbol.
+            
+            Parameters
+            ----------
+            gsymb: GSymbol.
+            
+            Returns
+            ----------
+            d_gtrans: dict{GTransition: probability}.
+        """
         return self._cfgmap[gsymb]
     
     
-    """
-        PCFG.res_to_trans
-        Get the grammar transitions with result the provided list of
-        symbols.
-        
-        Parameters
-        ----------
-        l_gsymb: tuple(GSymbol).
-        
-        Returns
-        ----------
-        d_gtrans: dict{GTransition: probability}.
-    """
     def res_to_trans(self, l_gsymb):
+        """
+            PCFG.res_to_trans
+            Get the grammar transitions with result the provided list of
+            symbols.
+            
+            Parameters
+            ----------
+            l_gsymb: tuple(GSymbol).
+            
+            Returns
+            ----------
+            d_gtrans: dict{GTransition: probability}.
+        """
         if l_gsymb in self._cfg_inversemap.keys():
             return self._cfg_inversemap[l_gsymb]
         return {}
     
     
-    """
-        PCFG.lexicon
-        Get the lexicon (mapping word -> set of possible corresponding
-        non-terminals).
-        
-        Returns
-        ----------
-        lexicon: dict{String : set(GSymbol(Non-Terminal))}.
-    """
     def lexicon(self):
+        """
+            PCFG.lexicon
+            Get the lexicon (mapping word -> set of possible corresponding
+            non-terminals).
+            
+            Returns
+            ----------
+            lexicon: dict{String : set(GSymbol(Non-Terminal))}.
+        """
         return self._lexicon
 
     
-    """
-        PCFG.final_non_terminals
-        Get the set of non-terminals which can lead to a terminal.
-        
-        Returns
-        ----------
-        nts: list(GSymbol(Non-Terminal)).
-    """
     def final_non_terminals(self):
+        """
+            PCFG.final_non_terminals
+            Get the set of non-terminals which can lead to a terminal.
+            
+            Returns
+            ----------
+            nts: list(GSymbol(Non-Terminal)).
+        """
         return self._final_non_terminals
 
 
-    """
-        PCFG.get_frequency
-        Get the frequency of the given word in the lexicon.
-        
-        Parameters
-        ----------
-        word: string.
-        
-        Returns
-        ----------
-        frequency: float.
-    """
     def get_frequency(self, word):
+        """
+            PCFG.get_frequency
+            Get the frequency of the given word in the lexicon.
+            
+            Parameters
+            ----------
+            word: string.
+            
+            Returns
+            ----------
+            frequency: float.
+        """
         return self._frequency_lexicon[word]

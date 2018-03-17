@@ -10,23 +10,23 @@ from speechnlpProject.grammar import *
 import numpy as np
 
 
-"""
-    edit_distance
-    Computes the Levenshtein distance between 2 given strings using the
-    Wagner–Fischer algorithm.
-    The Levenshtein distance takes into account insert, delete, replace 
-    operations.
-    
-    Parameters
-    ----------
-    s1: string. First string.
-    s2: string. Second string.
-    
-    Returns
-    ----------
-    res: int. The Levenshtein distance between s1 and s2.
-    """
 def edit_distance(s1, s2):
+    """
+        edit_distance
+        Computes the Levenshtein distance between 2 given strings using the
+        Wagner–Fischer algorithm.
+        The Levenshtein distance takes into account insert, delete, replace 
+        operations.
+        
+        Parameters
+        ----------
+        s1: string. First string.
+        s2: string. Second string.
+        
+        Returns
+        ----------
+        res: int. The Levenshtein distance between s1 and s2.
+    """
     # Note that compared to the psuedo code given in the slides:
     # - arrays indices in python begin at 0
     # - m is in fact of shape (len(s1)+1, len(s2)+1)
